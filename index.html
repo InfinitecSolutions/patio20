@@ -41,6 +41,7 @@
             line-height: 1.6;
             padding-top: 0;
             padding-bottom: 80px;
+            overflow-x: hidden; /* Prevent horizontal scroll */
         }
 
         /* --- Utility Classes --- */
@@ -312,14 +313,16 @@
             background-color: var(--secondary-black);
             padding: 15px 20px;
             display: flex;
-            justify-content: space-between;
+            justify-content: center; /* Changed to center the button */
             align-items: center;
             border-top: 2px solid var(--accent-yellow);
             z-index: 1001;
             cursor: pointer;
         }
-
+        
         #cart-summary .cart-info {
+            position: absolute;
+            left: 20px;
             display: flex;
             align-items: center;
         }
@@ -359,6 +362,25 @@
             background-color: #e5a610;
         }
         
+        /* --- Cart Backdrop --- */
+        #cart-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent black */
+            z-index: 1001; /* Below the cart panel, above everything else */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        #cart-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
         /* --- Cart Details (Slide-up Panel) --- */
         #cart-details {
             position: fixed;
@@ -369,10 +391,12 @@
             border-top: 2px solid var(--accent-yellow);
             padding: 20px;
             transition: bottom 0.4s ease-out;
-            z-index: 1002;
+            z-index: 1002; /* Above the backdrop */
             max-height: 85vh;
             overflow-y: auto;
             box-sizing: border-box; /* Ensures padding is included in width/height */
+            /* Added touch-action for better mobile experience */
+            touch-action: pan-y;
         }
 
         #cart-details.active {
@@ -396,6 +420,18 @@
             color: var(--text-dim);
             font-size: 1.5rem;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        #close-cart-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
         }
 
         /* --- General Order Info Section (Always Visible) --- */
@@ -457,7 +493,7 @@
         }
 
         .collapsible-content.expanded {
-            max-height: 300px;
+            max-height: 500px; /* Increased for new field */
             padding-top: 15px;
         }
         
@@ -486,6 +522,21 @@
             color: var(--text-dim);
         }
         
+        #customer-name-input-group {
+            margin-top: 15px;
+        }
+
+        #customer-name-input-group input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid var(--text-dim);
+            background-color: var(--primary-black);
+            color: var(--text-light);
+            font-family: var(--font-body);
+            font-size: 1rem;
+        }
+
         .collapsible-content p {
             margin: 10px 0 0;
             font-size: 1rem;
@@ -808,6 +859,9 @@
 </head>
 <body>
 
+    <!-- Cart Backdrop -->
+    <div id="cart-backdrop"></div>
+
     <!-- Loading Screen -->
     <div id="loading-screen">
         <div class="logo-loader">
@@ -853,7 +907,7 @@
     
     <!-- Cart Details (Slide-up Panel) -->
     <div id="cart-details" aria-hidden="true">
-        <h2>Detalle de tu Pedido <button id="close-cart-btn" aria-label="Cerrar detalles de la orden"><i class="fas fa-times"></i></button></h2>
+        <h2>Detalle de tu Pedido <button id="close-cart-btn" aria-label="Cerrar detalles de la orden"><i class="fas fa-chevron-down"></i></button></h2>
         
         <!-- General Order Info Section -->
         <div class="order-info-group">
@@ -873,6 +927,7 @@
             </div>
             <div class="collapsible-content" id="in-place-content">
                 <div class="info-grid">
+                    <input type="text" id="customer-name" placeholder="Tu Nombre" aria-label="Tu Nombre">
                     <input type="number" id="table-number" placeholder="Número de Mesa" min="1" aria-label="Número de Mesa">
                     <input type="number" id="diner-count" placeholder="Número de Comensales" min="1" aria-label="Número de Comensales">
                 </div>
@@ -933,7 +988,8 @@
                     { name: "Campechano", price: 25, image: "https://i.imgur.com/8zKf7q2.jpeg", customizationType: 'queso' },
                     { name: "Chorizo Argentino", price: 30, image: "https://i.imgur.com/H5r3vF6.jpeg", customizationType: 'queso' },
                     { name: "Chistorra", price: 30, image: "https://i.imgur.com/g4B9pT2.jpeg", customizationType: 'queso' },
-                    { name: "Arrachera", price: 30, image: "https://i.imgur.com/k8L0xY9.jpeg", customizationType: 'queso' }
+                    { name: "Arrachera", price: 30, image: "https://i.imgur.com/k8L0xY9.jpeg", customizationType: 'queso' },
+                    { name: "Combinado", price: 35, image: "https://i.imgur.com/9jM5p4X.jpeg", customizationType: 'queso' }
                 ]
             },
             {
@@ -953,27 +1009,29 @@
                     { name: "Paloma de Sabores", price: 100, image: "https://i.imgur.com/0aL6m8Y.jpeg", note: "LT", customizationType: 'sabor-paloma' },
                     { name: "Mojito Tradicional", price: 90, image: "https://i.imgur.com/1bN7q9Z.jpeg", note: "LT" },
                     { name: "Mojito de Sabores", price: 100, image: "https://i.imgur.com/2cO8r1A.jpeg", note: "LT", customizationType: 'sabor-mojito' },
-                    { name: "Shot de Tequila", price: 40, image: "https://i.imgur.com/3dP9s2B.jpeg" }
+                    { name: "Mojito Tinto", price: 100, image: "https://i.imgur.com/3dP9s2B.jpeg", note: "LT" },
+                    { name: "Mezcalina", price: 100, image: "https://i.imgur.com/4eQ6t3C.jpeg", note: "750 Mezcal 400 Conejos", customizationType: 'sabor-mezcalina' },
+                    { name: "Shot de Tequila", price: 40, image: "https://i.imgur.com/5fR7u4D.jpeg" }
                 ]
             },
             {
                 category: "Cervezas",
                 id: "cervezas-section",
                 items: [
-                    { name: "Cerveza", price: 90, image: "https://i.imgur.com/4eQ6t3C.jpeg", note: "LT (Michelada, Limón y Sal)", customizationType: 'notes', placeholder: "Ej: Cerveza sola, Solo con limón, Preparada" },
-                    { name: "Cerveza Clamato", price: 90, image: "https://i.imgur.com/5fR7u4D.jpeg", note: "LT" },
-                    { name: "Cerveza Pacifico", price: 95, image: "https://i.imgur.com/6gS8v5E.jpeg", note: "LT" }
+                    { name: "Cerveza", price: 90, image: "https://i.imgur.com/6gS8v5E.jpeg", note: "LT (Michelada, Limón y Sal)", customizationType: 'notes', placeholder: "Ej: Cerveza sola, Solo con limón, Preparada" },
+                    { name: "Cerveza Clamato", price: 90, image: "https://i.imgur.com/7hT9w6F.jpeg", note: "LT" },
+                    { name: "Cerveza Pacifico", price: 95, image: "https://i.imgur.com/8jU0x7G.jpeg", note: "LT" }
                 ]
             },
             {
                 category: "Sin Alcohol",
                 id: "sin-alcohol-section",
                 items: [
-                    { name: "Jarra de Agua", price: 60, image: "https://i.imgur.com/7hT9w6F.jpeg", note: "2LT", customizationType: 'notes', placeholder: "Preguntar por el agua del día" },
-                    { name: "Boing", price: 25, image: "https://i.imgur.com/8jU0x7G.jpeg", customizationType: 'notes', placeholder: "Preguntar por los sabores disponibles" },
-                    { name: "Coca-Cola", price: 25, image: "https://i.imgur.com/9kV1y8H.jpeg" },
-                    { name: "Botella de Agua", price: 10, image: "https://i.imgur.com/0lW2z9I.jpeg", customizationType: 'notes', placeholder: "Fría o a tiempo" },
-                    { name: "Tehuacan Preparado", price: 60, image: "https://i.imgur.com/1mX3a0J.jpeg", note: "LT", customizationType: 'notes', placeholder: "Ej: Sin hielos, Con limón" }
+                    { name: "Jarra de Agua", price: 60, image: "https://i.imgur.com/9kV1y8H.jpeg", note: "2LT", customizationType: 'notes', placeholder: "Preguntar por el agua del día" },
+                    { name: "Boing", price: 25, image: "https://i.imgur.com/0lW2z9I.jpeg", customizationType: 'notes', placeholder: "Preguntar por los sabores disponibles" },
+                    { name: "Coca-Cola", price: 25, image: "https://i.imgur.com/1mX3a0J.jpeg" },
+                    { name: "Botella de Agua", price: 10, image: "https://i.imgur.com/3lP1rY8.jpeg", customizationType: 'notes', placeholder: "Fría o a tiempo" },
+                    { name: "Tehuacan Preparado", price: 60, image: "https://i.imgur.com/5fJ4n2W.jpeg", note: "LT", customizationType: 'notes', placeholder: "Ej: Sin hielos, Con limón" }
                 ]
             }
         ];
@@ -1003,6 +1061,7 @@
                 this.averagePerDinerEl = document.getElementById('average-per-diner');
                 this.cartItemsContainer = document.getElementById('cart-items-container');
                 this.cartDetailsPanel = document.getElementById('cart-details');
+                this.cartBackdrop = document.getElementById('cart-backdrop');
                 this.customizationModal = document.getElementById('customization-modal');
                 this.imagePopupModal = document.getElementById('image-popup-modal');
                 this.popupImage = document.getElementById('popup-image');
@@ -1024,6 +1083,7 @@
                     if (!e.target.closest('#close-cart-btn')) this.toggleCart();
                 });
                 document.getElementById('close-cart-btn').addEventListener('click', () => this.toggleCart());
+                this.cartBackdrop.addEventListener('click', () => this.toggleCart()); // Close on backdrop click
                 document.getElementById('close-image-popup').addEventListener('click', () => this.closeImagePopup());
                 document.addEventListener('keydown', (e) => {
                     if (e.key === "Escape") {
@@ -1046,6 +1106,7 @@
                         this.inPlaceContent.classList.remove('expanded');
                         document.getElementById('table-number').value = '';
                         document.getElementById('diner-count').value = '';
+                        document.getElementById('customer-name').value = ''; // Clear name on uncheck
                         this.updateOrderDetails();
                     }
                 });
@@ -1080,6 +1141,7 @@
                 this.updateOrderDetails();
                 this.updateCartUI();
                 this.showCategory(this.menuData[0].id);
+                this.initSwipeToClose();
             }
 
             // --- Storage ---
@@ -1175,6 +1237,9 @@
                     case 'sabor-mojito':
                         optionsContainer.innerHTML = `<select id="sabor-opcion"><option value="" disabled selected>Elige un sabor</option><option value="Frutos Rojos">Frutos Rojos</option><option value="Sandía">Sandía</option><option value="Naranja">Naranja</option><option value="Piña">Piña</option></select>`;
                         break;
+                    case 'sabor-mezcalina':
+                        optionsContainer.innerHTML = `<select id="sabor-opcion"><option value="" disabled selected>Elige un sabor</option><option value="Tinto">Tinto</option><option value="Frutos Rojos">Frutos Rojos</option><option value="Naranja">Naranja</option><option value="Piña">Piña</option></select>`;
+                        break;
                     case 'notes':
                         optionsContainer.innerHTML = `<textarea id="customization-notes" placeholder="${item.placeholder || 'Añade una nota...'}"></textarea>`;
                         break;
@@ -1190,7 +1255,7 @@
                 this.customizationModal.style.display = 'none';
                 this.customizationModal.setAttribute('aria-hidden', 'true');
                 this.itemToAdd = null;
-            }
+             }
 
             addWithoutCustomization() {
                 if (!this.itemToAdd) return;
@@ -1335,6 +1400,55 @@
             toggleCart() {
                 const isActive = this.cartDetailsPanel.classList.toggle('active');
                 this.cartDetailsPanel.setAttribute('aria-hidden', !isActive);
+                this.cartBackdrop.classList.toggle('active', isActive); // Toggle backdrop class
+            }
+
+            // --- Swipe to Close Functionality ---
+            initSwipeToClose() {
+                let startY = 0;
+                let currentY = 0;
+                let isDragging = false;
+                const cartDetails = document.getElementById('cart-details');
+                
+                cartDetails.addEventListener('touchstart', (e) => {
+                    if (!cartDetails.classList.contains('active')) return;
+                    
+                    startY = e.touches[0].clientY;
+                    isDragging = true;
+                    cartDetails.style.transition = 'none';
+                }, { passive: true });
+                
+                cartDetails.addEventListener('touchmove', (e) => {
+                    if (!isDragging) return;
+                    
+                    currentY = e.touches[0].clientY;
+                    const diffY = currentY - startY;
+                    
+                    // Only allow dragging down
+                    if (diffY > 0) {
+                        // Calculate the transform value (0 to 100%)
+                        const transformValue = Math.min(diffY / 3, 100);
+                        cartDetails.style.transform = `translateY(${transformValue}px)`;
+                    }
+                }, { passive: true });
+                
+                cartDetails.addEventListener('touchend', (e) => {
+                    if (!isDragging) return;
+                    
+                    isDragging = false;
+                    const diffY = currentY - startY;
+                    
+                    // Reset transition
+                    cartDetails.style.transition = 'bottom 0.4s ease-out';
+                    
+                    // If dragged down enough, close the cart
+                    if (diffY > 100) {
+                        this.toggleCart();
+                    }
+                    
+                    // Reset transform
+                    cartDetails.style.transform = '';
+                }, { passive: true });
             }
 
             // --- Order Sending Logic ---
@@ -1355,6 +1469,7 @@
                 this.sendOrderBtn.disabled = true;
                 this.sendOrderBtn.innerHTML = '<i class="fa-solid fa-check"></i> Enviada';
 
+                const customerName = document.getElementById('customer-name').value || 'No especificado';
                 const tableNumber = document.getElementById('table-number').value || 'Para llevar';
                 const dinerCount = document.getElementById('diner-count').value || 'No especificado';
                 const now = new Date();
@@ -1365,6 +1480,7 @@
                 orderMessage += `📅 *Fecha:* ${orderDate}\n`;
                 orderMessage += `⏰ *Tipo de Orden:* ${this.inPlaceCheckbox.checked ? 'En Patio 20' : 'Para llevar'}\n`;
                 if(this.inPlaceCheckbox.checked) {
+                    orderMessage += `👤 *Nombre:* ${customerName}\n`;
                     orderMessage += `🪑 *Mesa:* ${tableNumber}\n`;
                     orderMessage += `👥 *Comensales:* ${dinerCount}\n`;
                 }
@@ -1424,6 +1540,7 @@
                 this.inPlaceContent.classList.remove('expanded');
                 document.getElementById('table-number').value = '';
                 document.getElementById('diner-count').value = '';
+                document.getElementById('customer-name').value = ''; // Clear name on reset
                 
                 this.toggleCart();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
